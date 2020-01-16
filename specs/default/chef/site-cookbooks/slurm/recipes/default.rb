@@ -86,7 +86,7 @@ when 'ubuntu'
 
 
 
-when 'centos'
+when 'centos', 'redhat'
   slurmrpms = %w[slurm slurm-devel slurm-example-configs slurm-slurmctld slurm-slurmd slurm-perlapi slurm-torque slurm-openlava]
   slurmrpms.each do |slurmpkg|
     jetpack_download "#{slurmpkg}-#{slurmver}.#{slurmarch}.rpm" do
@@ -100,6 +100,8 @@ when 'centos'
       action :install
     end
   end
+else
+  raise "Unsupported OS #{node[:platform]}"
 end
 
 #Fix munge permissions and create key
