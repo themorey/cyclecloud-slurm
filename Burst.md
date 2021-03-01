@@ -35,7 +35,7 @@ cyclecloud import_template slurm-headless -f templates/slurm-headless.txt -c slu
 ```bash
 mkdir -p /opt/cycle/jetpack/system/bootstrap/slurm
 cd !$
-tar xvzf /tmp/bootstrap8_slurm.tgz
+tar xvzf /tmp/slurm8_bootstrap.tgz
 ```
 
 3) Install `python3` and `python3-pip` packages if they aren't already installed
@@ -49,7 +49,7 @@ sudo pip install cyclecloud_api-8.1.0-py2.py3-none-any.whl
 5) Copy `job_submit_cyclecloud_<os>.so` to `/usr/lib64/slurm/`
 
 ```bash
-sudo cp /opt/cycle/jetpack/system/bootstrap/job_submit_cyclecloud.so /usr/lib64/slurm/
+sudo cp /opt/cycle/jetpack/system/bootstrap/slurm/job_submit_cyclecloud_<OS>.so /usr/lib64/slurm/
 ```
 
 6) Make the jetpack config directory
