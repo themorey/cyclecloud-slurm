@@ -44,20 +44,20 @@ The default template that ships with Azure CycleCloud has three partitions (`hpc
 
 ### Dynamic Partitions
 As of `3.0.1`, we support dynamic partitions. You can make a `nodearray` map to a dynamic partition by adding the following.
-Note that `mydyn` could be any valid Feature. It could also be more than one, separated by a comma.
+Note that `dyn` could be any valid Feature (it defaults to `dyn` in the cluster template). It could also be more than one, separated by a comma.
 ```ini
       [[[configuration]]]
       slurm.autoscale = true
       # Set to true if nodes are used for tightly-coupled multi-node jobs
       slurm.hpc = false
       # This is the minimum, but see slurmd --help and [slurm.conf](https://slurm.schedmd.com/slurm.conf.html) for more information.
-      slurm.dynamic_config := "-Z --conf \"Feature=mydyn\""
+      slurm.dynamic_config := "-Z --conf \"Feature=dyn\""
 ```
 
 This will generate a dynamic partition like the following
 ```
-# Creating dynamic nodeset and partition using slurm.dynamic_config=-Z --conf "Feature=mydyn"
-Nodeset=mydynamicns Feature=mydyn
+# Creating dynamic nodeset and partition using slurm.dynamic_config=-Z --conf "Feature=dyn"
+Nodeset=mydynamicns Feature=dyn
 PartitionName=mydynamic Nodes=mydynamicns
 ```
 
@@ -66,20 +66,34 @@ By default, we define no nodes in the dynamic partition. Instead, you can start 
 
 Instead, you can also pre-create node records like so, which allows Slurm to autoscale them up.
 ```bash
-scontrol create nodename=f4-[1-10] Feature=mydyn State=CLOUD
+scontrol create NodeName=slurm-multi-low-[1-10] CPUs=2 Boards=1 SocketsPerBoard=1 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=3072 Feature=dyn,Standard_F2s_v2 State=CLOUD
 ```
+**_Note_  In the above and following examples, `slurm-multi-` is the "Cluster Prefix" defined in the cluster configuration.  This name will be specific to your cluster and should match the prefix used on `htc`, `hpc` and other "non-dynamic" partitions.
+
+
+The Azure VM resources (ie. `CPUs`, `Boards`, etc) can be found using the `azslurm buckets` command:
+```bash
+NODEARRAY PLACEMENT_GROUP      VM_SIZE            VCPU_COUNT PCPU_COUNT MEMORY  AVAILABLE_COUNT NCPUS PCPUS NGPUS MEMGB   CCNODEID SLURM_MEMORY
+dynamic                        Standard_F2s_v2    2          1          4.00g   50              2     1     0     4.00g            3.00g
+hpc                            Standard_NC6s_v3   6          6          112.00g 29              6     6     1     112.00g          106.40g
+hpc       Standard_NC6s_v3_pg0 Standard_NC6s_v3   6          6          112.00g 29              6     6     1     112.00g          106.40g
+htc                            Standard_F2s_v2    2          1          4.00g   5               2     1     0     4.00g            3.00g
+```
+**_Note_ Use the `SLURM_MEMORY` to create the Slurm nodes, which is the "dampened" amount of `MEMGB`, which is the VM total RAM.
 
 One other advantage of dynamic partitions is that you can support **multiple VM sizes in the same partition**.
 Simply add the VM Size name as a feature, and then `azslurm` can distinguish which VM size you want to use.
 
 **_Note_ The VM Size is added implicitly. You do not need to add it to `slurm.dynamic_config`**
 ```bash
-scontrol create nodename=f4-[1-10] Feature=mydyn,Standard_F4 State=CLOUD
-scontrol create nodename=f8-[1-10] Feature=mydyn,Standard_F8 State=CLOUD
+scontrol create NodeName=slurm-multi-low-[1-10] CPUs=2 Boards=1 SocketsPerBoard=1 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=3072 Feature=dyn,Standard_F2s_v2 State=CLOUD
+scontrol create NodeName=slurm-multi-mid-[1-10] CPUs=2 Boards=1 SocketsPerBoard=1 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=7168 Feature=dyn,Standard_D2ds_v4 State=CLOUD
+scontrol create NodeName=slurm-multi-high-[1-10] CPUs=2 Boards=1 SocketsPerBoard=1 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=15360 Feature=dyn,Standard_E2ds_v4 State=CLOUD
+scontrol create NodeName=slurm-multi-gpu-[1-5] CPUs=6 Boards=1 SocketsPerBoard=1 CoresPerSocket=6 ThreadsPerCore=1 RealMemory=54476 Gres=gpu:1 Feature=dyn,Standard_NC6_Promo State=CLOUD
 ```
+**_Note_  If defining GPU nodes in the dynamic partition, run `azslurm scale` to generate the `gres.conf` file.  You will need to manually modify the `gres.conf` to verify the nodename and quantity of GPU enabled nodes listed in `gres.conf`
 
-
-Either way, once you have created these nodes in a `State=Cloud` they are now available to autoscale like other nodes.
+Either way, once you have created these nodes in a `State=Cloud` they are now available to autoscale like other nodes (ie. they will be displayed in `sinfo`).
 
 To support **multiple VM sizes in a CycleCloud nodearray**, you can alter the template to allow multiple VM sizes by adding `Config.Mutiselect = true`.
 ```ini
