@@ -137,6 +137,7 @@ One way of doing this is to add following lines in cluster-init:
 yum install -y mariadb-server
 systemctl enable mariadb.service
 systemctl start mariadb.service
+mysql --connect-timeout=120 -u root -e "UPDATE mysql.user SET plugin='mysql_native_password' WHERE user='root'; FLUSH privileges;"
 ```
 
 #### AzureCA.pem and existing MariaDB/MySQL instances
